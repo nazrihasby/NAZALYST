@@ -1,0 +1,25 @@
+# .streamlit/config.toml
+
+[server]
+headless = true
+# Maksimum ukuran upload (MB) untuk CSV besar di Batch/Dashboard
+maxUploadSize = 200
+# Matikan CORS (umumnya aman di lokal)
+enableCORS = false
+# Port default
+port = 8501
+
+[client]
+# Mode toolbar minimal (lebih bersih untuk presentasi)
+toolbarMode = "viewer"
+
+[logger]
+level = "info"
+
+[theme]
+base = "light"
+primaryColor = "#0076A8"            # Biru Pertamina
+secondaryBackgroundColor = "#F3F7FA"
+backgroundColor = "#FFFFFF"
+textColor = "#0F172A"
+font = "sans serif"
