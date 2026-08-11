@@ -92,54 +92,48 @@ if "text" not in df.columns:
     st.stop()
 
 # Bersihkan nilai kosong dan pastikan seluruh data berupa string
-text_data = (
+text_series = (
     df["text"]
     .fillna("")
-    .map(str)
-    .tolist()
+    .astype(str)
 )
 
-text = " ".join(text_data)
+# Batasi jumlah review untuk menjaga penggunaan memory
+# pada Streamlit Cloud
+max_wordcloud_rows = 20000
 
-if text.strip() == "":
-
-    st.warning(
-
-        "Tidak ada data."
-
+if len(text_series) > max_wordcloud_rows:
+    text_series = text_series.sample(
+        n=max_wordcloud_rows,
+        random_state=42
     )
 
+text = " ".join(text_series.tolist())
+
+if text.strip() == "":
+    st.warning("Tidak ada data.")
 else:
-
     wc = WordCloud(
-
         width=1200,
-
         height=500,
-
         background_color="white",
-
         colormap="Reds"
-
     ).generate(text)
 
     fig, ax = plt.subplots(
-
-        figsize=(15,6)
-
+        figsize=(15, 6)
     )
 
     ax.imshow(
-
         wc,
-
         interpolation="bilinear"
-
     )
 
     ax.axis("off")
 
     st.pyplot(fig)
+
+    plt.close(fig)
 
     # =====================================================
 # TOP WORD
