@@ -86,13 +86,20 @@ st.divider()
 
 section_title("☁️ Word Cloud")
 
-text = " ".join(
+# Pastikan kolom text tersedia
+if "text" not in df.columns:
+    st.error("Kolom 'text' tidak ditemukan pada dataset.")
+    st.stop()
 
+# Bersihkan nilai kosong dan pastikan seluruh data berupa string
+text_data = (
     df["text"]
-
-    .astype(str)
-
+    .fillna("")
+    .map(str)
+    .tolist()
 )
+
+text = " ".join(text_data)
 
 if text.strip() == "":
 
