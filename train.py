@@ -292,7 +292,7 @@ def main():
             "weighted_recall": recall,
             "weighted_f1": f1
         }))
-
+    
         f.write("\n\n## Classification Report\n")
         f.write(report_str)
     
