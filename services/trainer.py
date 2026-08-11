@@ -251,15 +251,15 @@ class ModelTrainer:
         )
         
         if process.returncode != 0:
-            error_message = (
-                f"Training gagal dengan exit code {process.returncode}\n\n"
-                f"STDOUT:\n{process.stdout}\n\n"
-                f"STDERR:\n{process.stderr}"
-            )
-        
-            logger.error(error_message)
-        
-            raise RuntimeError(error_message)
+        error_message = (
+            f"Training gagal dengan exit code {process.returncode}\n\n"
+            f"STDOUT:\n{process.stdout}\n\n"
+            f"STDERR:\n{process.stderr}"
+        )
+    
+        logger.error(error_message)
+    
+        raise RuntimeError(error_message)
 
         self._emit_progress(
             progress_callback,
