@@ -244,22 +244,22 @@ class ModelTrainer:
         logger.info(" ".join(command))
 
         process = subprocess.run(
-
-                command,
-
-                capture_output=True,
-
-                text=True,
-
-                check=True
-
-            )
-
+            command,
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT_DIR)
+        )
+        
         if process.returncode != 0:
-
-            logger.error(process.stderr)
-
-            raise RuntimeError(process.stderr)
+            error_message = (
+                f"Training gagal dengan exit code {process.returncode}\n\n"
+                f"STDOUT:\n{process.stdout}\n\n"
+                f"STDERR:\n{process.stderr}"
+            )
+        
+            logger.error(error_message)
+        
+            raise RuntimeError(error_message)
 
         self._emit_progress(
             progress_callback,
