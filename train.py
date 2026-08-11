@@ -281,20 +281,24 @@ def main():
     cm = confusion_matrix(y_te, y_pred)
 
     # Tulis laporan
-    report_path = Path(args.report_path)
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(report_path, "w", encoding="utf-8") as f:
-        f.write("# Evaluation\n")
-        f.write(json.dumps({
-            "accuracy": acc,
-            "weighted_precision": precision,
-            "weighted_recall": recall,
-            "weighted_f1": f1
-        }))
-        f.write("\n\n## Classification Report\n")
-        f.write(report_str)
-        f.write("\n\n## Confusion Matrix\n")
-        f.write(np.array2string(cm))
+report_path = Path(args.report_path)
+report_path.parent.mkdir(parents=True, exist_ok=True)
+
+with open(report_path, "w", encoding="utf-8") as f:
+    f.write("# Evaluation")
+    f.write(json.dumps({
+        "accuracy": acc,
+        "weighted_precision": precision,
+        "weighted_recall": recall,
+        "weighted_f1": f1
+    }))
+
+    f.write("\n\n## Classification Report\n")
+    f.write(report_str)
+
+    f.write("\n\n## Confusion Matrix\n")
+    f.write(np.array2string(cm))
+    
     print(f">> Accuracy           : {acc:.4f}")
     print(f">> Weighted Precision : {precision:.4f}")
     print(f">> Weighted Recall    : {recall:.4f}")
