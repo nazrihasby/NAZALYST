@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
+import sys
 import pandas as pd
 
 from dataclasses import dataclass
@@ -231,7 +232,7 @@ class ModelTrainer:
 
         command = [
 
-            "python",
+            sys.executable,
 
             str(self.train_script),
 
