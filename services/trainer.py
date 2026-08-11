@@ -35,6 +35,8 @@ MODEL_DIR = ROOT_DIR / "models"
 
 TRAIN_SCRIPT = ROOT_DIR / "train.py"
 
+PREDICTION_SCRIPT = ROOT_DIR / "generate_predictions.py"
+
 TRAINING_INFO_PATH = DATA_DIR / "training_info.json"
 
 DATASET_PATH = DATA_DIR / "dataset.csv"
@@ -203,10 +205,19 @@ class ModelTrainer:
         progress_callback: Optional[Callable] = None,
     ) -> TrainingResult:
         """
-        Menjalankan train.py.
+        Menjalankan pipeline retraining:
+
+        1. train.py
+        2. generate_predictions.py
+
+        Sama seperti workflow manual di CMD.
         """
 
         started_at = datetime.now()
+
+        # ==================================================
+        # 1. PREPARING
+        # ==================================================
 
         self._emit_progress(
             progress_callback,
@@ -215,119 +226,217 @@ class ModelTrainer:
         )
 
         logger.info("=" * 60)
-        logger.info("MODEL TRAINING")
+        logger.info("NAZALYST RETRAINING PIPELINE")
         logger.info("=" * 60)
 
         if not self.dataset_path.exists():
-
             raise FileNotFoundError(
                 f"Dataset tidak ditemukan: {self.dataset_path}"
             )
 
+        if not self.train_script.exists():
+            raise FileNotFoundError(
+                f"Training script tidak ditemukan: {self.train_script}"
+            )
+
+        if not PREDICTION_SCRIPT.exists():
+            raise FileNotFoundError(
+                f"Prediction script tidak ditemukan: {PREDICTION_SCRIPT}"
+            )
+
+        # ==================================================
+        # 2. TRAIN MODEL
+        # ==================================================
+
         self._emit_progress(
             progress_callback,
-            "Training",
+            "Training model...",
             20,
         )
 
-        command = [
-
+        train_command = [
             sys.executable,
-
             str(self.train_script),
-
             "--csv",
-
             str(self.dataset_path),
-
         ]
 
-        logger.info(" ".join(command))
+        logger.info("TRAIN COMMAND:")
+        logger.info(" ".join(train_command))
 
-        process = subprocess.run(
-            command,
+        train_process = subprocess.run(
+            train_command,
             capture_output=True,
             text=True,
-            cwd=str(ROOT_DIR)
+            cwd=str(ROOT_DIR),
         )
-        
-        if process.returncode != 0:
+
+        # Tampilkan output training ke log
+        if train_process.stdout:
+            logger.info("TRAIN STDOUT:\n%s", train_process.stdout)
+
+        if train_process.returncode != 0:
             error_message = (
-                f"Training gagal dengan exit code {process.returncode}\n\n"
-                f"STDOUT:\n{process.stdout}\n\n"
-                f"STDERR:\n{process.stderr}"
+                "Training model gagal.\n\n"
+                f"Exit code: {train_process.returncode}\n\n"
+                f"STDOUT:\n{train_process.stdout}\n\n"
+                f"STDERR:\n{train_process.stderr}"
             )
-        
+
             logger.error(error_message)
-        
+
             raise RuntimeError(error_message)
+
+        logger.info("Training model berhasil.")
+
+        # ==================================================
+        # 3. TRAINING SELESAI
+        # ==================================================
 
         self._emit_progress(
             progress_callback,
-            "Saving",
+            "Training selesai",
+            60,
+        )
+
+        # ==================================================
+        # 4. GENERATE PREDICTION
+        # ==================================================
+
+        self._emit_progress(
+            progress_callback,
+            "Generating predictions...",
+            70,
+        )
+
+        prediction_command = [
+            sys.executable,
+            str(PREDICTION_SCRIPT),
+        ]
+
+        logger.info("PREDICTION COMMAND:")
+        logger.info(" ".join(prediction_command))
+
+        prediction_process = subprocess.run(
+            prediction_command,
+            capture_output=True,
+            text=True,
+            cwd=str(ROOT_DIR),
+        )
+
+        # Tampilkan output prediction ke log
+        if prediction_process.stdout:
+            logger.info(
+                "PREDICTION STDOUT:\n%s",
+                prediction_process.stdout,
+            )
+
+        if prediction_process.returncode != 0:
+            error_message = (
+                "Generate prediction gagal.\n\n"
+                f"Exit code: {prediction_process.returncode}\n\n"
+                f"STDOUT:\n{prediction_process.stdout}\n\n"
+                f"STDERR:\n{prediction_process.stderr}"
+            )
+
+            logger.error(error_message)
+
+            raise RuntimeError(error_message)
+
+        logger.info("Generate prediction berhasil.")
+
+        # ==================================================
+        # 5. VALIDASI OUTPUT
+        # ==================================================
+
+        self._emit_progress(
+            progress_callback,
+            "Validating results...",
             90,
         )
+
+        model_path = MODEL_DIR / "model.pkl"
+        vectorizer_path = MODEL_DIR / "vectorizer.pkl"
+        label_encoder_path = MODEL_DIR / "label_encoder.pkl"
+        prediction_path = DATA_DIR / "hasil_prediksi.csv"
+
+        required_files = {
+            "model": model_path,
+            "vectorizer": vectorizer_path,
+            "label_encoder": label_encoder_path,
+            "hasil_prediksi": prediction_path,
+        }
+
+        missing_files = [
+            name
+            for name, path in required_files.items()
+            if not path.exists()
+        ]
+
+        if missing_files:
+            raise FileNotFoundError(
+                "Retraining selesai tetapi file berikut tidak ditemukan: "
+                + ", ".join(missing_files)
+            )
+
+        # ==================================================
+        # 6. SAVE TRAINING INFO
+        # ==================================================
 
         finished_at = datetime.now()
 
         duration = (
-
             finished_at - started_at
-
         ).total_seconds()
 
+        dataset_size = len(
+            pd.read_csv(self.dataset_path)
+        )
+
+        prediction_size = len(
+            pd.read_csv(prediction_path)
+        )
+
         info = {
-
             "status": "success",
-
             "last_training": finished_at.isoformat(),
-
             "duration": duration,
-
-            "dataset_size": len(
-                pd.read_csv(self.dataset_path)
-            ),
-
-            "model_path": str(
-                MODEL_DIR / "model.pkl"
-            ),
-
-            "vectorizer_path": str(
-                MODEL_DIR / "vectorizer.pkl"
-            ),
-
-            "label_encoder_path": str(
-                MODEL_DIR / "label_encoder.pkl"
-            ),
-
+            "dataset_size": dataset_size,
+            "prediction_size": prediction_size,
+            "model_path": str(model_path),
+            "vectorizer_path": str(vectorizer_path),
+            "label_encoder_path": str(label_encoder_path),
+            "prediction_path": str(prediction_path),
         }
 
-        self.save_training_info(
-            info
-        )
+        self.save_training_info(info)
+
+        # ==================================================
+        # 7. FINISHED
+        # ==================================================
 
         self._emit_progress(
             progress_callback,
-            "Finished",
+            "Retrain selesai",
             100,
         )
 
-        logger.info(
-            "Training selesai."
-        )
+        logger.info("=" * 60)
+        logger.info("RETRAINING SELESAI")
+        logger.info("Dataset       : %s", dataset_size)
+        logger.info("Prediction    : %s", prediction_size)
+        logger.info("Duration      : %.2f sec", duration)
+        logger.info("=" * 60)
 
         return TrainingResult(
-
             status="success",
-
             started_at=started_at,
-
             finished_at=finished_at,
-
             duration=duration,
-
-            message="Training berhasil.",
-
+            message=(
+                "Training model dan generate prediction "
+                "berhasil."
+            ),
         )
         # ======================================================
     # MODEL INFORMATION
