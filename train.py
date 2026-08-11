@@ -293,11 +293,11 @@ def main():
             "weighted_f1": f1
         }))
 
-    f.write("\n\n## Classification Report\n")
-    f.write(report_str)
-
-    f.write("\n\n## Confusion Matrix\n")
-    f.write(np.array2string(cm))
+        f.write("\n\n## Classification Report\n")
+        f.write(report_str)
+    
+        f.write("\n\n## Confusion Matrix\n")
+        f.write(np.array2string(cm))
     
     print(f">> Accuracy           : {acc:.4f}")
     print(f">> Weighted Precision : {precision:.4f}")
